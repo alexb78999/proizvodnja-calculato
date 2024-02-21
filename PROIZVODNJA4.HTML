@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unos podataka za proizvodnju</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h2, h3 {
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        input, button {
+            margin-bottom: 10px;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        input[type="datetime-local"] {
+            width: 100%;
+        }
+
+        button {
+            font-family: Arial, sans-serif;
+            background-color: #888;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        #rezultati {
+            margin-top: 20px;
+            border-top: 2px solid #333;
+            padding-top: 10px;
+        }
+
+        #rezultati p {
+            margin: 5px 0;
+        }
+
+        /* Styling for responsiveness */
+        @media (max-width: 600px) {
+            input, button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Unos podataka za proizvodnju</h2>
+
+    <label for="datumVreme">Datum i vreme početka proizvodnje:</label>
+    <input type="datetime-local" id="datumVreme" placeholder="дд.мм.гггг. --:--" required>
+
+    <label for="brzinaProizvodnje">Brzina proizvodnje (u komadima u minuti):</label>
+    <input type="number" id="brzinaProizvodnje" placeholder="Unesite brzinu" required>
+
+    <h3>Unos potreba za proizvode:</h3>
+
+    <!-- Polje za unos redosleda -->
+    <label for="redosled">Redosled proizvoda (unesite proizvode razdvojene zarezima):</label>
+    <input type="text" id="redosled" placeholder="npr. proizvod1, proizvod2" required>
+
+    <button type="button" onclick="izracunaj()">Izračunaj</button>
+    <button type="button" onclick="preuzmiExcel()">Preuzmi Excel</button>
+    <button type="button" onclick="stampajRezultate()">Štampaj rezultate</button>
+
+    <h2>Rezultati proizvodnje</h2>
+
+    <div id="rezultati"></div>
+
+    <script>
+        function izracunaj() {
+            // Prikupljanje podataka iz forme
+            var datumVreme = document.getElementById("datumVreme").value;
+            var brzinaProizvodnje = document.getElementById("brzinaProizvodnje").value;
+            var redosledInput = document.getElementById("redosled").value;
+
+            // Pretvaranje unosa redosleda u niz proizvoda
+            var proizvodi = redosledInput.split(",").map(function (item) {
+                return item.trim();
+            });
+
+            // Prikupljanje potreba za svaki proizvod
+            var potrebe = [];
+            for (var i = 0; i < proizvodi.length; i++) {
+                var potreba = prompt("Unesite potrebu za proizvod " + proizvodi[i] + " (u broju komada):");
+                potrebe.push(parseInt(potreba) || 0);
+            }
+
+            // Prikaz rezultata
+            var rezultatiHtml = "<h3>Rezultati proizvodnje:</h3>";
+            var vremePocetka = new Date(datumVreme);
+            var vremeZavrsetkaPrethodnogProizvoda = vremePocetka;
+
+            for (var i = 0; i < proizvodi.length; i++) {
+                var potrebaKomada = potrebe[i];
+                var trajanjeCiklusaMillis = (potrebaKomada / brzinaProizvodnje) * 60 * 1000;
+                var vremeZavrsetka = new Date(vremeZavrsetkaPrethodnogProizvoda.getTime() + trajanjeCiklusaMillis);
+
+                var brojCiklusa = potrebaKomada / 16;
+                rezultatiHtml += "<p>Proizvod: " + proizvodi[i] + "</p>";
+                rezultatiHtml += "<p>Početak proizvodnje: " + vremeZavrsetkaPrethodnogProizvoda.toLocaleString() + "</p>";
+                rezultatiHtml += "<p>Završetak proizvodnje: " + vremeZavrsetka.toLocaleString() + "</p>";
+                rezultatiHtml += "<p>Potrebno ciklusa: " + brojCiklusa.toFixed(2) + "</p><br>";
+
+                vremeZavrsetkaPrethodnogProizvoda = vremeZavrsetka;
+            }
+
+            // Postavljanje rezultata na stranicu
+            document.getElementById("rezultati").innerHTML = rezultatiHtml;
+        }
+
+        function preuzmiExcel() {
+            var rezultati = [];
+
+            // Prikupljanje podataka iz forme
+            var datumVreme = document.getElementById("datumVreme").value;
+            var brzinaProizvodnje = document.getElementById("brzinaProizvodnje").value;
+            var redosledInput = document.getElementById("redosled").value;
+
+            // Pretvaranje unosa redosleda u niz proizvoda
+            var proizvodi = redosledInput.split(",").map(function (item) {
+                return item.trim();
+            });
+
+            // Prikupljanje potreba za svaki proizvod
+            var potrebe = [];
+            for (var i = 0; i < proizvodi.length; i++) {
+                var potreba = prompt("Unesite potrebu za proizvod " + proizvodi[i] + " (u broju komada):");
+                potrebe.push(parseInt(potreba) || 0);
+            }
+
+            // Kreiranje objekata za svaki proizvod
+            for (var i = 0; i < proizvodi.length; i++) {
+                var rezultat = {
+                    Proizvod: proizvodi[i],
+                    'Početak proizvodnje': '',
+                    'Završetak proizvodnje': '',
+                    'Potrebno ciklusa': 0
+                };
+
+                var potrebaKomada = potrebe[i];
+                var trajanjeCiklusaMillis = (potrebaKomada / brzinaProizvodnje) * 60 * 1000;
+                var vremeZavrsetka = new Date(vremePocetka.getTime() + trajanjeCiklusaMillis);
+
+                var brojCiklusa = potrebaKomada / 16;
+                rezultat['Početak proizvodnje'] = vremePocetka.toLocaleString();
+                rezultat['Završetak proizvodnje'] = vremeZavrsetka.toLocaleString();
+                rezultat['Potrebno ciklusa'] = brojCiklusa.toFixed(2);
+
+                rezultati.push(rezultat);
+
+                vremePocetka = new Date(vremeZavrsetka);
+            }
+
+            // Kreiranje Excel fajla
+            var ws = XLSX.utils.json_to_sheet(rezultati);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Rezultati Proizvodnje");
+
+            // Generisanje blob objekta
+            var blob = XLSX.write(wb, { bookType: 'xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+            // Kreiranje URL-a za preuzimanje
+            var url = URL.createObjectURL(blob);
+
+            // Kreiranje linka za preuzimanje i automatsko kliktanje na njega
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'rezultati_proizvodnje.xlsx';
+            document.body.appendChild(a);
+            a.click();
+
+            // Oslobađanje resursa
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function stampajRezultate() {
+            window.print();
+        }
+    </script>
+
+</body>
+
+</html>
